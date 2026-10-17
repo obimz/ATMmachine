@@ -1,0 +1,59 @@
+# Visual Studio / .NET ignores
+.vs/
+.vscode/
+.idea/
+
+# Build outputs
+**/bin/
+**/obj/
+/ATM/bin/
+/ATM/obj/
+
+# Visual Studio files
+*.suo
+*.user
+*.userosscache
+*.userprefs
+*.vsp
+
+# Test results
+TestResults/
+*.trx
+
+# NuGet
+packages/
+*.nupkg
+.nuget/
+project.assets.json
+
+# Publish
+publish/
+*.Publish.xml
+
+# Logs and temporary files
+*.log
+*.tmp
+*.bak
+*.swp
+
+# Certificates and secrets
+*.pfx
+appsettings.*.json
+secrets.json
+.env
+*.pem
+*.key
+
+# OS files
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Misc
+*.vsix
+*.psd
+*.zip
+
+# Rider/JetBrains
+*.DotSettings.user
+_ReSharper*/
