@@ -15,25 +15,31 @@ namespace ATM
         }
         public static void Deposit(Customer customer)
         {
-            Console.WriteLine("This is the section for depositing credit. ");
+            Console.WriteLine("This is the section for depositing money. ");
             float amt = EnterAmount();
             customer.UpdateBalance(amt, UpdateType.add);
             ShowBalance(customer);
         }
         public static void Withdraw(Customer customer)
         {
-            Console.WriteLine("This is the section for withdrawing credit. ");
+            Console.WriteLine("This is the section for withdrawing money. ");
             float amt = EnterAmount();
             customer.UpdateBalance(amt, UpdateType.subtract);
             ShowBalance(customer);
         }
         public static void Transfer(Customer sender)
         {
-            Console.WriteLine("This is the section for transferring credit. ");
+            Console.WriteLine("This is the section for transferring money. ");
 
             Customer receiver = ScreenDisplay.DisplayCustomers();
 
             float amt = EnterAmount();
+            
+            if (!sender.CanWithdraw(amt))
+            {
+                Console.WriteLine("Error: Insufficient funds for transfer.");
+                return;
+            }
 
             receiver.UpdateBalance(amt, UpdateType.add);
             sender.UpdateBalance(amt, UpdateType.subtract);

@@ -12,7 +12,12 @@ namespace ATM
         public int AccountNumber { get; private set; }
         public int AccountPin { get; private set; }
         public double AccountBalance { get; set; }
-        private float minLimitCredit = 500;
+        private float minLimitCredit = 100.00f;
+
+        public bool CanWithdraw(float amt)
+        {
+            return (AccountBalance - amt) >= minLimitCredit;
+        }
 
         public void UpdateBalance(float amt, UpdateType update)
         {
