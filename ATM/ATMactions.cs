@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace ATM
 {
     public class ATMactions
     {
+        public static Customer CurrentUser { get; private set; }
         private record TransactionEntry(Transactions Type, DateTime Time);
         private static readonly List<TransactionEntry> transactions = new();
         public static void ShowBalance(Customer customer)
@@ -91,74 +93,99 @@ namespace ATM
 
         public static Customer Login()
         {
-            ScreenDisplay.OnboardingMessage();
-
-            Console.Write("Are you an existing user? (y/n): ");
-            var isExisting = Console.ReadLine()?.Trim().ToLower() == "y";
-
-            if (isExisting)
+            while (true)
             {
-                int accNum;
-                do
-                {
-                    Console.Write("Enter your account number: ");
-                    var input = Console.ReadLine();
-                    if (!int.TryParse(input, out accNum))
-                    {
-                        accNum = 0;
-                        Console.WriteLine("Error! Invalid account number!");
-                    }
-                } while (accNum == 0);
+                ScreenDisplay.OnboardingMessage();
 
-                int accPin;
-                do
-                {
-                    Console.Write("Enter your account pin: ");
-                    var input = Console.ReadLine();
-                    if (!int.TryParse(input, out accPin))
-                    {
-                        accPin = 0;
-                        Console.WriteLine("Invalid account pin!");
-                    }
-                } while (accPin == 0);
+                Console.Write("Are you an existing user? (y/n): ");
+                var isExisting = Console.ReadLine()?.Trim().ToLower() == "y";
 
-                var customer = Authentication.ExistingUser(accNum, accPin);
-                if (customer != null)
+                if (isExisting)
                 {
-                    Console.Clear();
-                    ScreenDisplay.WelcomeCustomerMsg(customer);
-                    return customer;
+                    int accNum;
+                    do
+                    {
+                        Console.Write("Enter your account number: ");
+                        var input = Console.ReadLine();
+                        if (!int.TryParse(input, out accNum))
+                        {
+                            accNum = 0;
+                            Console.WriteLine("Error! Invalid account number!");
+                        }
+                    } while (accNum == 0);
+
+                    int accPin;
+                    do
+                    {
+                        Console.Write("Enter your 4-digit account pin: ");
+                        var input = Console.ReadLine();
+                        if (!int.TryParse(input, out accPin))
+                        {
+                            accPin = 0;
+                            Console.WriteLine("Invalid account pin!");
+                        }
+                    } while (accPin == 0);
+
+                    var customer = Authentication.ExistingUser(accNum, accPin);
+                    if (customer != null)
+                    {
+                        CurrentUser = customer;
+                        Console.Clear();
+                        ScreenDisplay.WelcomeCustomerMsg(customer);
+                        return customer;
+                    }
+
+                    Console.WriteLine("No matching customer found. Try again or create a new user.");
+                    // loop and let user choose again
+                    continue;
                 }
-
-                Console.WriteLine("No matching customer found. Try again or create a new user.");
-                return Login();
-            }
-            else
-            {
-                Console.Write("First name: ");
-                var first = Console.ReadLine();
-                Console.Write("Last name: ");
-                var last = Console.ReadLine();            
-
-                int pin;
-                do
+                else
                 {
-                    Console.Write("Choose a PIN: ");
-                    var input = Console.ReadLine();
-                    if (!int.TryParse(input, out pin))
+                    string firstName;
+                    do
                     {
-                        Console.WriteLine("Error: Invalid PIN!");
-                        pin = 0;
-                    }
-                } while (pin == 0);
+                        Console.Write("Please enter your first name: ");
+                        firstName = Console.ReadLine()?.Trim() ?? "";
+                        if (string.IsNullOrWhiteSpace(firstName) || !firstName.All(c => char.IsLetter(c)))
+                        {
+                            Console.WriteLine("Error: First name must contain only letters and cannot be empty!");
+                            firstName = "";
+                        }
+                    } while (string.IsNullOrWhiteSpace(firstName));
 
-                double bal = 0;
+                    string lastName;
+                    do
+                    {
+                        Console.Write("Please enter your last name: ");
+                        lastName = Console.ReadLine()?.Trim() ?? "";
+                        if (string.IsNullOrWhiteSpace(lastName) || !lastName.All(c => char.IsLetter(c)))
+                        {
+                            Console.WriteLine("Error: Last name must contain only letters and cannot be empty!");
+                            lastName = "";
+                        }
+                    } while (string.IsNullOrWhiteSpace(lastName));
 
-                var newCustomer = Authentication.NewUser(first, last, pin, bal);
-                Console.Clear();
-                Console.WriteLine($"\n\nYour account has been created successfully! Your account number is: {newCustomer.AccountNumber}");
-                ScreenDisplay.WelcomeCustomerMsg(newCustomer);
-                return newCustomer;
+                    int pin;
+                    do
+                    {
+                        Console.Write("Choose a PIN: ");
+                        var input = Console.ReadLine();
+                        if (!int.TryParse(input, out pin))
+                        {
+                            Console.WriteLine("Error: Invalid PIN!");
+                            pin = 0;
+                        }
+                    } while (pin == 0);
+
+                    double bal = 0;
+
+                    var newCustomer = Authentication.NewUser(firstName, lastName, pin, bal);
+                    CurrentUser = newCustomer;
+                    Console.Clear();
+                    Console.WriteLine($"\n\nYour account has been created successfully! Your account number is: {newCustomer.AccountNumber}");
+                    ScreenDisplay.WelcomeCustomerMsg(newCustomer);
+                    return newCustomer;
+                }
             }
         }
 
@@ -168,7 +195,7 @@ namespace ATM
 
             while (looping)
             {
-                ScreenDisplay.DisplayMenu();
+                ScreenDisplay.DisplayMenu(customer);
                 int option = 0;
                 do
                 {

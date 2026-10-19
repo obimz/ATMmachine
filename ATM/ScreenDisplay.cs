@@ -27,9 +27,9 @@ namespace ATM
             PressEnterToContinue();
         }
 
-        public static void DisplayMenu()
+        public static void DisplayMenu(Customer customer)
         {
-            Console.WriteLine("\n\nHere are the available options: \n");
+            Console.WriteLine($"\n\n{customer.FirstName} {customer.LastName}, here are the available options: \n");
             Console.WriteLine("1. \tShow Balance");
             Console.WriteLine("2. \tDeposit");
             Console.WriteLine("3. \tWithdraw");

@@ -12,13 +12,13 @@ namespace ATM
         {
             new Customer(1, "Samuel", "Obimba", 123456, 1234, 1000.00),
             new Customer(2, "Jane", "Smith", 123457, 4321, 2000.00),
-            new Customer(3, "Alice", "Johnson", 123457, 5678, 1500.00),
-            new Customer(4, "Bob", "Brown", 123458, 8765, 500.00)
+            new Customer(3, "Alice", "Johnson", 123458, 5678, 1500.00),
+            new Customer(4, "Bob", "Brown", 123459, 8765, 500.00)
         };
 
         public static Customer ExistingUser(int accountNumber, int pin)
         {
-            ScreenDisplay.OnboardingMessage();
+            // Logic-only authentication lookup; UI should be handled by the caller.
             foreach (var customer in customers)
             {
                 if (customer.AccountNumber == accountNumber && customer.AccountPin == pin)
@@ -27,7 +27,6 @@ namespace ATM
                 }
             }
             return null;
-
         }
 
         private static readonly Random rng = new Random();
@@ -65,5 +64,7 @@ namespace ATM
             }
             return null;
         }
+
+        
     }
 }
