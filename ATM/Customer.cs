@@ -10,7 +10,6 @@ namespace ATM
         public String FirstName { get; set; }
         public String LastName { get; set; }
         public int AccountNumber { get; private set; }
-        public int AccountPin { get; private set; }
         public double AccountBalance { get; set; }
         private float minLimitCredit = 100.00f;
 
@@ -37,13 +36,12 @@ namespace ATM
                 }
             }
         }
-        public Customer(int id, string firstName, string lastName, int accountNumber, int pin, double balance)
+        public Customer(int id, string firstName, string lastName, int accountNumber, double balance)
         {
             ID = id;
             FirstName = firstName;
             LastName = lastName;
             AccountNumber = accountNumber;
-            AccountPin = pin;
             AccountBalance = balance;
         }
     }

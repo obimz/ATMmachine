@@ -7,8 +7,12 @@ namespace ATM
     {
         public static void WelcomeMessage()
         {
-            Console.WriteLine("Welcome! This is an ATM Application.");
-            Console.WriteLine("\n\n\nWelcome to your ATM App where you can manage your account.");
+            Console.WriteLine("______________________________________________");
+            Console.WriteLine("|                                             |");
+            Console.WriteLine("|     Welcome! This is an ATM Application.    |");
+            Console.WriteLine("|                                             |");
+            Console.WriteLine("______________________________________________");
+            Console.WriteLine("\n\nWelcome to your ATM App where you can manage your account!");
             PressEnterToContinue();
         }
 
