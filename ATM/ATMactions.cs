@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 
 namespace ATM
@@ -7,32 +6,63 @@ namespace ATM
     public class ATMactions
     {
         public static Customer CurrentUser { get; private set; }
-        private record TransactionEntry(Transactions Type, DateTime Time);
-        private static readonly List<TransactionEntry> transactions = new();
+
         public static void ShowBalance(Customer customer)
         {
             Console.WriteLine($"\nYour current balance is: {customer.AccountBalance}");
-
-            
         }
+
         public static void Deposit(Customer customer)
         {
             Console.WriteLine("This is the section for depositing money. ");
-            float amt = EnterAmount();
-            customer.UpdateBalance(amt, UpdateType.add);
-            ShowBalance(customer);
+            decimal amount = EnterAmount();
+
+            try
+            {
+                AccountData? account = DBQueries.FindAccount(customer.AccountNumber);
+                if (account is null)
+                {
+                    Console.WriteLine("Account could not be found.");
+                    return;
+                }
+
+                AccountData updatedAccount = DBQueries.ApplyDeposit(account.AccountId, amount);
+                customer.AccountBalance = (double)updatedAccount.Balance;
+                ShowBalance(customer);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Deposit failed: {ex.Message}");
+            }
         }
+
         public static void Withdraw(Customer customer)
         {
             Console.WriteLine("This is the section for withdrawing money. ");
-            float amt = EnterAmount();
-            customer.UpdateBalance(amt, UpdateType.subtract);
-            ShowBalance(customer);
+            decimal amount = EnterAmount();
+
+            try
+            {
+                AccountData? account = DBQueries.FindAccount(customer.AccountNumber);
+                if (account is null)
+                {
+                    Console.WriteLine("Account could not be found.");
+                    return;
+                }
+
+                AccountData updatedAccount = DBQueries.ApplyWithdrawal(account.AccountId, amount);
+                customer.AccountBalance = (double)updatedAccount.Balance;
+                ShowBalance(customer);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Withdrawal failed: {ex.Message}");
+            }
         }
+
         public static void Transfer(Customer sender)
         {
             Console.WriteLine("This is the section for transferring money. ");
-            //recvAcc is the account number of the receiver
             int recvAcc;
             do
             {
@@ -45,49 +75,66 @@ namespace ATM
                 }
             } while (recvAcc == 0);
 
-            var receiver = Authentication.FindByAccountNumber(recvAcc);
-            if (receiver == null)
+            AccountData? senderAccount = DBQueries.FindAccount(sender.AccountNumber);
+            AccountData? receiverAccount = DBQueries.FindAccount(recvAcc);
+            if (senderAccount is null || receiverAccount is null)
             {
                 Console.WriteLine("No customer found with that account number. Transfer cancelled.");
                 return;
             }
 
-            float amt = EnterAmount();
-
-            if (!sender.CanWithdraw(amt))
-            {
-                Console.WriteLine("Error: Insufficient funds for transfer.");
-                return;
-            }
-
-            
-            sender.UpdateBalance(amt, UpdateType.subtract);
+            decimal amount = EnterAmount();
             try
             {
-                receiver.UpdateBalance(amt, UpdateType.add);
+                DBQueries.Transfer(
+                    senderAccount.AccountId,
+                    receiverAccount.AccountId,
+                    amount);
+
+                AccountData? updatedSender = DBQueries.FindAccount(sender.AccountNumber);
+                if (updatedSender is not null)
+                {
+                    sender.AccountBalance = (double)updatedSender.Balance;
+                }
+
+                ShowBalance(sender);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                sender.UpdateBalance(amt, UpdateType.add);
-                Console.WriteLine("Transfer failed and was rolled back.");
-                return;
+                Console.WriteLine($"Transfer failed and was rolled back: {ex.Message}");
             }
-
-            ShowBalance(sender);
-
         }
 
         public static void ShowTransactionsHistory()
         {
             Console.WriteLine("\t\tTransactions made are:\n");
+            if (CurrentUser is null)
+            {
+                return;
+            }
+
+            AccountData? account = DBQueries.FindAccount(CurrentUser.AccountNumber);
+            if (account is null)
+            {
+                Console.WriteLine("Account could not be found.\n");
+                return;
+            }
+
+            List<TransactionData> transactions = DBQueries.GetTransactions(account.AccountId);
             if (transactions.Count == 0)
             {
                 Console.WriteLine("No transactions recorded.\n");
                 return;
             }
-            foreach (var t in transactions)
+
+            foreach (TransactionData transaction in transactions)
             {
-                Console.WriteLine($"Transaction: {t.Type}\n\tDate: {t.Time}\n");
+                Console.WriteLine(
+                    $"Transaction: {transaction.TransactionType}\n" +
+                    $"\tAmount: {transaction.Amount}\n" +
+                    $"\tBalance after: {transaction.BalanceAfter}\n" +
+                    $"\tDate: {transaction.TransactionDate}\n" +
+                    $"\tDescription: {transaction.Description}\n");
             }
         }
 
@@ -114,17 +161,17 @@ namespace ATM
                         }
                     } while (accNum == 0);
 
-                    int accPin;
+                    string accPin;
                     do
                     {
                         Console.Write("Enter your 4-digit account pin: ");
-                        var input = Console.ReadLine();
-                        if (!int.TryParse(input, out accPin))
+                        accPin = Console.ReadLine()?.Trim() ?? "";
+                        if (accPin.Length != 4 || !accPin.All(char.IsDigit))
                         {
-                            accPin = 0;
+                            accPin = "";
                             Console.WriteLine("Invalid account pin!");
                         }
-                    } while (accPin == 0);
+                    } while (string.IsNullOrEmpty(accPin));
 
                     var customer = Authentication.ExistingUser(accNum, accPin);
                     if (customer != null)
@@ -136,7 +183,7 @@ namespace ATM
                     }
 
                     Console.WriteLine("No matching customer found. Try again or create a new user.");
-                    // loop and let user choose again
+                    // loops and let user choose again
                     continue;
                 }
                 else
@@ -165,19 +212,19 @@ namespace ATM
                         }
                     } while (string.IsNullOrWhiteSpace(lastName));
 
-                    int pin;
+                    string pin;
                     do
                     {
                         Console.Write("Choose a PIN: ");
-                        var input = Console.ReadLine();
-                        if (!int.TryParse(input, out pin))
+                        pin = Console.ReadLine()?.Trim() ?? "";
+                        if (pin.Length != 4 || !pin.All(char.IsDigit))
                         {
                             Console.WriteLine("Error: Invalid PIN!");
-                            pin = 0;
+                            pin = "";
                         }
-                    } while (pin == 0);
+                    } while (string.IsNullOrEmpty(pin));
 
-                    double bal = 0;
+                    decimal bal = 0;
 
                     var newCustomer = Authentication.NewUser(firstName, lastName, pin, bal);
                     CurrentUser = newCustomer;
@@ -215,23 +262,18 @@ namespace ATM
                 {
                     case 1:
                         ShowBalance(customer);
-                        transactions.Add(new TransactionEntry(Transactions.ShowBalance, DateTime.Now));
                         break;
                     case 2:
                         Deposit(customer);
-                        transactions.Add(new TransactionEntry(Transactions.Deposit, DateTime.Now));
                         break;
                     case 3:
                         Withdraw(customer);
-                        transactions.Add(new TransactionEntry(Transactions.Withdraw, DateTime.Now));
                         break;
                     case 4:
                         Transfer(customer);
-                        transactions.Add(new TransactionEntry(Transactions.Transfer, DateTime.Now));
                         break;
                     case 5:
                         ShowTransactionsHistory();
-                        transactions.Add(new TransactionEntry(Transactions.ShowTransactionsHistory, DateTime.Now));
                         break;
                     default:
                         looping = false;
@@ -240,14 +282,14 @@ namespace ATM
             }
         }
 
-        private static float EnterAmount()
+        private static decimal EnterAmount()
         {
-            float num;
+            decimal num;
             do
             {
                 Console.Write("Enter the amount: ");
                 var input = Console.ReadLine();
-                if (!float.TryParse(input, out num) || num <= 0)
+                if (!decimal.TryParse(input, out num) || num <= 0)
                 {
                     Console.WriteLine("Error: Enter a positive numeric amount!");
                     num = 0;

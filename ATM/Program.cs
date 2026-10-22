@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Net.NetworkInformation;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Microsoft.Data.SqlClient;
 
 
 namespace ATM
@@ -18,6 +14,18 @@ namespace ATM
             Customer customer = ATMactions.Login();
 
             ATMactions.Menu(customer);
+
+            /*try
+            {                
+                using (SqlConnection conn = DBconnect.GetConnection())
+                {
+                    Console.WriteLine("Connection successful! Ready to query the database");
+                }
+            }
+            catch (SqlException ex)
+            {
+                Console.WriteLine($"Failed to connect to the database: {ex.Message}");
+            }*/
 
 
         }

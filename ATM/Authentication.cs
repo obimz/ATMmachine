@@ -1,70 +1,63 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-
-namespace ATM
+﻿namespace ATM
 {
     public class Authentication
     {
-
-        public static IReadOnlyList<Customer> GetCustomers() => customers.AsReadOnly();
-        private static readonly List<Customer> customers = new()
+        public static Customer ExistingUser(int accountNumber, string pin)
         {
-            new Customer(1, "Samuel", "Obimba", 123456, 1234, 1000.00),
-            new Customer(2, "Jane", "Smith", 123457, 4321, 2000.00),
-            new Customer(3, "Alice", "Johnson", 123458, 5678, 1500.00),
-            new Customer(4, "Bob", "Brown", 123459, 8765, 500.00)
-        };
-
-        public static Customer ExistingUser(int accountNumber, int pin)
-        {
-            // Logic-only authentication lookup; UI should be handled by the caller.
-            foreach (var customer in customers)
+            AccountData? account = DBQueries.FindAccount(accountNumber);
+            if (account is null || !account.IsActive)
             {
-                if (customer.AccountNumber == accountNumber && customer.AccountPin == pin)
-                {
-                    return customer;
-                }
+                return null;
             }
-            return null;
-        }
 
-        private static readonly Random rng = new Random();
-        private static readonly object rngLock = new object();
+            return PinHasher.VerifyPin(pin, account.PinHash)
+                ? ToCustomer(account)
+                : null;
+        }
 
         private static int Generate6DigitAccountNumber()
         {
             int accountNumber;
             do
             {
-                lock (rngLock)
-                {
-                    accountNumber = rng.Next(123459, 1000000);
-                }
-            } while (customers.Any(c => c.AccountNumber == accountNumber));
+                accountNumber = Random.Shared.Next(123459, 1000000);
+            } while (DBQueries.FindAccount(accountNumber) is not null);
+
             return accountNumber;
         }
 
-        public static Customer NewUser(string firstName, string lastName, int pin, double balance)
+        public static Customer NewUser(
+            string firstName,
+            string lastName,
+            string pin,
+            decimal balance)
         {
             int accountNumber = Generate6DigitAccountNumber();
-            int newId = customers.Count + 1;
-            Customer newCustomer = new Customer(newId, firstName, lastName, accountNumber, pin, balance);
-            customers.Add(newCustomer);
-            return newCustomer;
+            byte[] pinHash = PinHasher.HashPin(pin);
+            AccountData account = DBQueries.CreateAccount(
+                firstName,
+                lastName,
+                accountNumber,
+                pinHash,
+                balance);
+
+            return ToCustomer(account);
         }
 
-        
         public static Customer FindByAccountNumber(int accountNumber)
         {
-            foreach (var customer in customers)
-            {
-                if (customer.AccountNumber == accountNumber)
-                    return customer;
-            }
-            return null;
+            AccountData? account = DBQueries.FindAccount(accountNumber);
+            return account is null ? null : ToCustomer(account);
         }
 
-        
+        private static Customer ToCustomer(AccountData account)
+        {
+            return new Customer(
+                account.CustomerId,
+                account.FirstName,
+                account.LastName,
+                account.AccountNumber,
+                (double)account.Balance);
+        }
     }
 }
