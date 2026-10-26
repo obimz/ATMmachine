@@ -33,13 +33,18 @@ namespace ATM
 
         public static void DisplayMenu(Customer customer)
         {
-            Console.WriteLine($"\n\n{customer.FirstName} {customer.LastName}, here are the available options: \n");
-            Console.WriteLine("1. \tShow Balance");
-            Console.WriteLine("2. \tDeposit");
-            Console.WriteLine("3. \tWithdraw");
-            Console.WriteLine("4. \tTransfer");
-            Console.WriteLine("5. \tShow Transaction History");
-            Console.WriteLine("6. \tExit");
+            Console.WriteLine("__________________________________________________________________________________");
+            Console.WriteLine("|                                                                                |");
+            Console.WriteLine($"| {customer.FirstName} {customer.LastName}, here are the available options:     |");
+            Console.WriteLine("|                                                                                |");
+            Console.WriteLine("|                                                                                |");
+            Console.WriteLine("| 1. \tShow Balance                                                               |");
+            Console.WriteLine("| 2. \tDeposit                                                                    |");
+            Console.WriteLine("| 3. \tWithdraw                                                                   |");
+            Console.WriteLine("| 4. \tTransfer                                                                   |");
+            Console.WriteLine("| 5. \tShow Transaction History                                                   |");
+            Console.WriteLine("| 6. \tExit                                                                       |");
+            Console.WriteLine("__________________________________________________________________________________");
         }
 
         public static void OnboardingMessage()
