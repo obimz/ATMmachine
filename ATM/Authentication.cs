@@ -1,4 +1,6 @@
-﻿namespace ATM
+﻿using Serilog;
+
+namespace ATM
 {
     public class Authentication
     {
@@ -7,12 +9,15 @@
             AccountData? account = DBQueries.FindAccount(accountNumber);
             if (account is null || !account.IsActive)
             {
+                Log.Warning("Login failed: account {Account Number} not found or is inactive", accountNumber);
                 return null;
             }
 
             return PinHasher.VerifyPin(pin, account.PinHash)
                 ? ToCustomer(account)
                 : null;
+
+            Log.Information("Login successful {AccountNumber}", accountNumber);
         }
 
         private static int Generate6DigitAccountNumber()
@@ -32,6 +37,8 @@
             string pin,
             decimal balance)
         {
+            Log.Information("Creating new account for {firstName} {lastName}", firstName, lastName);
+
             int accountNumber = Generate6DigitAccountNumber();
             byte[] pinHash = PinHasher.HashPin(pin);
             AccountData account = DBQueries.CreateAccount(
@@ -41,6 +48,7 @@
                 pinHash,
                 balance);
 
+            Log.Information("Account created successfully {AccountNumber}", account.AccountNumber);
             return ToCustomer(account);
         }
 

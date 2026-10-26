@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Serilog;
+using System;
 using System.Linq;
 
 namespace ATM
@@ -9,6 +10,7 @@ namespace ATM
 
         public static void ShowBalance(Customer customer)
         {
+            Log.Information("Customer with account {AccountNumber} initialized ShowBalance", customer.AccountNumber);
             Console.WriteLine($"\nYour current balance is: {customer.AccountBalance}");
         }
 
@@ -17,21 +19,37 @@ namespace ATM
             Console.WriteLine("This is the section for depositing money. ");
             decimal amount = EnterAmount();
 
+            Log.Information(
+                "Deposit requested for account {AccountNumber}, amount {Amount}",
+                customer.AccountNumber,
+                amount);
+
             try
             {
                 AccountData? account = DBQueries.FindAccount(customer.AccountNumber);
                 if (account is null)
                 {
+                    Log.Warning("Deposit failed: account {AccountNumber} not found", customer.AccountNumber);
                     Console.WriteLine("Account could not be found.");
                     return;
                 }
 
                 AccountData updatedAccount = DBQueries.ApplyDeposit(account.AccountId, amount);
                 customer.AccountBalance = (double)updatedAccount.Balance;
+
+                Log.Information(
+                    "Deposit successful for account {AccountNumber}, new balance {Balance}", customer.AccountNumber,
+                    customer.AccountBalance);
+
                 ShowBalance(customer);
             }
             catch (Exception ex)
             {
+                Log.Error(
+                    ex,
+                    "Deposit failed for account {AccountNumber}",
+                    customer.AccountNumber);
+
                 Console.WriteLine($"Deposit failed: {ex.Message}");
             }
         }
@@ -41,21 +59,38 @@ namespace ATM
             Console.WriteLine("This is the section for withdrawing money. ");
             decimal amount = EnterAmount();
 
+            Log.Information(
+                "Withdrawal requested for account {AccountNumber}, amount {Amount}",
+                customer.AccountNumber,
+                amount);
+
             try
             {
                 AccountData? account = DBQueries.FindAccount(customer.AccountNumber);
                 if (account is null)
                 {
+                    Log.Warning("Withdrawal failed: account {AccountNumber} not found", customer.AccountNumber);
                     Console.WriteLine("Account could not be found.");
                     return;
                 }
 
                 AccountData updatedAccount = DBQueries.ApplyWithdrawal(account.AccountId, amount);
                 customer.AccountBalance = (double)updatedAccount.Balance;
+
+                Log.Information(
+                    "Withdrawal successful for account {AccountNumber}, new balance {Balance}",
+                    customer.AccountNumber,
+                    customer.AccountBalance);
+
                 ShowBalance(customer);
             }
             catch (Exception ex)
             {
+                Log.Error(
+                    ex,
+                    "Withdrawal failed for account {AccountNumber}",
+                    customer.AccountNumber);
+
                 Console.WriteLine($"Withdrawal failed: {ex.Message}");
             }
         }
@@ -77,19 +112,29 @@ namespace ATM
 
             AccountData? senderAccount = DBQueries.FindAccount(sender.AccountNumber);
             AccountData? receiverAccount = DBQueries.FindAccount(recvAcc);
+
             if (senderAccount is null || receiverAccount is null)
             {
+                Log.Warning(
+                    "Transfer failed: sender account {SenderAccountNumber} or receiver account {ReceiverAccountNumber} not found",
+                    sender.AccountNumber,
+                    recvAcc);
+
                 Console.WriteLine("No customer found with that account number. Transfer cancelled.");
                 return;
             }
 
             decimal amount = EnterAmount();
+
+            Log.Information(
+                "Transfer requested from {SenderAccountNumber} to {ReceiverAccountNumber}, amount {Amount}",
+                sender.AccountNumber,
+                recvAcc,
+                amount);
+
             try
             {
-                DBQueries.Transfer(
-                    senderAccount.AccountId,
-                    receiverAccount.AccountId,
-                    amount);
+                DBQueries.Transfer(senderAccount.AccountId, receiverAccount.AccountId, amount);
 
                 AccountData? updatedSender = DBQueries.FindAccount(sender.AccountNumber);
                 if (updatedSender is not null)
@@ -97,10 +142,23 @@ namespace ATM
                     sender.AccountBalance = (double)updatedSender.Balance;
                 }
 
+                Log.Information(
+                    "Transfer successful from {SenderAccountNumber} to {ReceiverAccountNumber}, amount {Amount}",
+                    sender.AccountNumber,
+                    recvAcc,
+                    amount);
+
                 ShowBalance(sender);
             }
             catch (Exception ex)
             {
+                Log.Error(
+                    ex,
+                    "Transfer failed from {SenderAccountNumber} to {ReceiverAccountNumber}, amount {Amount}",
+                    sender.AccountNumber,
+                    recvAcc,
+                    amount);
+
                 Console.WriteLine($"Transfer failed and was rolled back: {ex.Message}");
             }
         }
@@ -108,19 +166,34 @@ namespace ATM
         public static void ShowTransactionsHistory()
         {
             Console.WriteLine("\t\tTransactions made are:\n");
+
             if (CurrentUser is null)
             {
+                Log.Warning("ShowTransactionsHistory was called with no user");
                 return;
             }
+
+            Log.Information(
+                "ShowTransactionsHistory for account {AccountNumber}",
+                CurrentUser.AccountNumber);
 
             AccountData? account = DBQueries.FindAccount(CurrentUser.AccountNumber);
             if (account is null)
             {
+                Log.Warning(
+                    "ShowTransactionsHistory failed: account {AccountNumber} not found",
+                    CurrentUser.AccountNumber);
+
                 Console.WriteLine("Account could not be found.\n");
                 return;
             }
 
-            List<TransactionData> transactions = DBQueries.GetTransactions(account.AccountId);
+            var transactions = DBQueries.GetTransactions(account.AccountId);
+            Log.Information(
+                "Transactions loaded for account {AccountNumber}, count {Count}",
+                CurrentUser.AccountNumber,
+                transactions.Count);
+
             if (transactions.Count == 0)
             {
                 Console.WriteLine("No transactions recorded.\n");
@@ -183,7 +256,6 @@ namespace ATM
                     }
 
                     Console.WriteLine("No matching customer found. Try again or create a new user.");
-                    // loops and let user choose again
                     continue;
                 }
                 else
@@ -225,7 +297,6 @@ namespace ATM
                     } while (string.IsNullOrEmpty(pin));
 
                     decimal bal = 0;
-
                     var newCustomer = Authentication.NewUser(firstName, lastName, pin, bal);
                     CurrentUser = newCustomer;
                     Console.Clear();
@@ -244,10 +315,9 @@ namespace ATM
             {
                 ScreenDisplay.DisplayMenu(customer);
                 int option = 0;
+
                 do
                 {
-                    
-
                     Console.Write("\nChoose an option: ");
                     var input = Console.ReadLine();
                     if (!int.TryParse(input, out option) || option < 1 || option > 6)
@@ -255,8 +325,12 @@ namespace ATM
                         Console.WriteLine("Invalid input");
                         option = 0;
                     }
-
                 } while (option == 0);
+
+                Log.Information(
+                    "The user with account {AccountNumber} selected option {Option}",
+                    customer.AccountNumber,
+                    option);
 
                 switch (option)
                 {
@@ -276,6 +350,7 @@ namespace ATM
                         ShowTransactionsHistory();
                         break;
                     default:
+                        Log.Information("User exited menu for account {AccountNumber}", customer.AccountNumber);
                         looping = false;
                         break;
                 }
@@ -289,14 +364,15 @@ namespace ATM
             {
                 Console.Write("Enter the amount: ");
                 var input = Console.ReadLine();
+
                 if (!decimal.TryParse(input, out num) || num <= 0)
                 {
                     Console.WriteLine("Error: Enter a positive numeric amount!");
                     num = 0;
                 }
             } while (num == 0);
+
             return num;
         }
-
     }
 }
