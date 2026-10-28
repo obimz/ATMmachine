@@ -33,7 +33,7 @@ namespace ATM
 
                 Customer customer = ATMactions.Login();
 
-                ATMactions.Menu(customer);
+                ScreenDisplay.Menu(customer);
             }
             catch (Exception ex)
             {
