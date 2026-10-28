@@ -22,9 +22,9 @@ namespace ATM
 		DateTime TransactionDate,
 		string? Description);
 
-	public static class DBQueries
+	public class DBQueries : IDBQueries
 	{
-		public static AccountData? FindAccount(int accountNumber)
+		public AccountData? FindAccount(int accountNumber)
 		{
 			const string query = """
 				SELECT
@@ -50,7 +50,7 @@ namespace ATM
 			return reader.Read() ? ReadAccount(reader) : null;
 		}
 
-		public static AccountData CreateAccount(
+		public AccountData CreateAccount(
 			string firstName,
 			string lastName,
 			int accountNumber,
@@ -121,7 +121,7 @@ namespace ATM
 			}
 		}
 
-		public static AccountData ApplyDeposit(int accountId, decimal amount)
+		public AccountData ApplyDeposit(int accountId, decimal amount)
 		{
 			return ApplyBalanceChange(
 				accountId,
@@ -131,7 +131,7 @@ namespace ATM
 				"Cash deposit");
 		}
 
-		public static AccountData ApplyWithdrawal(int accountId, decimal amount)
+		public AccountData ApplyWithdrawal(int accountId, decimal amount)
 		{
 			return ApplyBalanceChange(
 				accountId,
@@ -141,7 +141,7 @@ namespace ATM
 				"ATM withdrawal");
 		}
 
-		public static void Transfer(int senderAccountId, int receiverAccountId, decimal amount)
+		public void Transfer(int senderAccountId, int receiverAccountId, decimal amount)
 		{
 			const string balanceQuery = """
 				SELECT AccountId, Balance, MinimumBalance
@@ -261,7 +261,7 @@ namespace ATM
 			}
 		}
 
-		public static List<TransactionData> GetTransactions(int accountId)
+		public List<TransactionData> GetTransactions(int accountId)
 		{
 			const string query = """
 				SELECT

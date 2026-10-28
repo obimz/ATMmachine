@@ -4,9 +4,11 @@ namespace ATM
 {
     public class Authentication
     {
+        private static readonly IDBQueries database = new DBQueries(); //create a database-query object with IDBQueries as the field type
+
         public static Customer ExistingUser(int accountNumber, string pin)
         {
-            AccountData? account = DBQueries.FindAccount(accountNumber);
+            AccountData? account = database.FindAccount(accountNumber);
             if (account is null || !account.IsActive)
             {
                 Log.Warning("Login failed: account {Account Number} not found or is inactive", accountNumber);
@@ -26,7 +28,7 @@ namespace ATM
             do
             {
                 accountNumber = Random.Shared.Next(123459, 1000000);
-            } while (DBQueries.FindAccount(accountNumber) is not null);
+            } while (database.FindAccount(accountNumber) is not null);
 
             return accountNumber;
         }
@@ -41,7 +43,7 @@ namespace ATM
 
             int accountNumber = Generate6DigitAccountNumber();
             byte[] pinHash = PinHasher.HashPin(pin);
-            AccountData account = DBQueries.CreateAccount(
+            AccountData account = database.CreateAccount(
                 firstName,
                 lastName,
                 accountNumber,
@@ -54,7 +56,7 @@ namespace ATM
 
         public static Customer FindByAccountNumber(int accountNumber)
         {
-            AccountData? account = DBQueries.FindAccount(accountNumber);
+            AccountData? account = database.FindAccount(accountNumber);
             return account is null ? null : ToCustomer(account);
         }
 
