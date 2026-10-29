@@ -7,7 +7,9 @@ namespace ATM
 {
     public class ATMactions : IATMactions
     {
-        private static readonly IDBQueries database = new DBQueries();
+        private static readonly IAccountReadRepository databaseRead = new DBQueries();
+        private static readonly ITransactionsCommandsRepo databaseTransact = new DBQueries();
+
 
         public static Customer? CurrentUser { get; private set; }
 
@@ -30,7 +32,7 @@ namespace ATM
 
             try
             {
-                AccountData? account = database.FindAccount(customer.AccountNumber);
+                AccountData? account = databaseRead.FindAccount(customer.AccountNumber);
                 if (account is null)
                 {
                     Log.Warning("Deposit failed: account {AccountNumber} not found", customer.AccountNumber);
@@ -38,7 +40,7 @@ namespace ATM
                     return;
                 }
 
-                AccountData updatedAccount = database.ApplyDeposit(account.AccountId, amount);
+                AccountData updatedAccount = databaseTransact.ApplyDeposit(account.AccountId, amount);
                 customer.AccountBalance = (double)updatedAccount.Balance;
 
                 Log.Information(
@@ -70,7 +72,7 @@ namespace ATM
 
             try
             {
-                AccountData? account = database.FindAccount(customer.AccountNumber);
+                AccountData? account = databaseRead.FindAccount(customer.AccountNumber);
                 if (account is null)
                 {
                     Log.Warning("Withdrawal failed: account {AccountNumber} not found", customer.AccountNumber);
@@ -78,7 +80,7 @@ namespace ATM
                     return;
                 }
 
-                AccountData updatedAccount = database.ApplyWithdrawal(account.AccountId, amount);
+                AccountData updatedAccount = databaseTransact.ApplyWithdrawal(account.AccountId, amount);
                 customer.AccountBalance = (double)updatedAccount.Balance;
 
                 Log.Information(
@@ -114,8 +116,8 @@ namespace ATM
                 }
             } while (recvAcc == 0);
 
-            AccountData? senderAccount = database.FindAccount(sender.AccountNumber);
-            AccountData? receiverAccount = database.FindAccount(recvAcc);
+            AccountData? senderAccount = databaseRead.FindAccount(sender.AccountNumber);
+            AccountData? receiverAccount = databaseRead.FindAccount(recvAcc);
 
             if (senderAccount is null || receiverAccount is null)
             {
@@ -138,9 +140,9 @@ namespace ATM
 
             try
             {
-                database.Transfer(senderAccount.AccountId, receiverAccount.AccountId, amount);
+                databaseTransact.Transfer(senderAccount.AccountId, receiverAccount.AccountId, amount);
 
-                AccountData? updatedSender = database.FindAccount(sender.AccountNumber);
+                AccountData? updatedSender = databaseRead.FindAccount(sender.AccountNumber);
                 if (updatedSender is not null)
                 {
                     sender.AccountBalance = (double)updatedSender.Balance;
@@ -181,7 +183,7 @@ namespace ATM
                 "ShowTransactionsHistory for account {AccountNumber}",
                 CurrentUser.AccountNumber);
 
-            AccountData? account = database.FindAccount(CurrentUser.AccountNumber);
+            AccountData? account = databaseRead.FindAccount(CurrentUser.AccountNumber);
             if (account is null)
             {
                 Log.Warning(
@@ -192,7 +194,7 @@ namespace ATM
                 return;
             }
 
-            var transactions = database.GetTransactions(account.AccountId);
+            var transactions = databaseTransact.GetTransactions(account.AccountId);
             Log.Information(
                 "Transactions loaded for account {AccountNumber}, count {Count}",
                 CurrentUser.AccountNumber,
