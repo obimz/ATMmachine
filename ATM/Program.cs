@@ -1,7 +1,8 @@
-﻿using Serilog;
+﻿using System;
+using System.IO;
+using Serilog;
 using Serilog.Events;
-
-
+using Microsoft.Extensions.DependencyInjection;
 
 namespace ATM
 {
@@ -9,9 +10,9 @@ namespace ATM
     {
         public static void Main(string[] args)
         {
+            // Logging setup
             string logDirectory = @"C:\Users\Obimz01\source\repos\ATM\logs";
             Directory.CreateDirectory(logDirectory);
-
             string logFilePath = Path.Combine(logDirectory, "atm-.log");
 
             Log.Logger = new LoggerConfiguration()
@@ -24,16 +25,33 @@ namespace ATM
                     retainedFileCountLimit: 14)
                 .CreateLogger();
 
-
-
             try
             {
-                Log.Information("Atm Application has started");
-                ScreenDisplay.WelcomeMessage();
+                Log.Information("ATM Application has started");
 
-                Customer customer = ATMactions.Login();
+                // Dependency Injection Setup
+                var services = new ServiceCollection();
 
-                ScreenDisplay.Menu(customer);
+                services.AddTransient<IAccountReadRepository, DBQueries>();
+                services.AddTransient<ITransactionsCommandsRepo, DBQueries>();
+
+                services.AddTransient<Authentication>();
+                services.AddTransient<ScreenDisplay>();
+                services.AddTransient<IATMactions, ATMactions>();
+
+                ServiceProvider serviceProvider = services.BuildServiceProvider();
+
+                // Resolves services from the DI container
+                var screenDisplay = serviceProvider.GetRequiredService<ScreenDisplay>();
+
+                screenDisplay.WelcomeMessage();
+
+                Customer? customer = screenDisplay.Login();
+
+                if (customer is not null)
+                {
+                    screenDisplay.Menu(customer);
+                }
             }
             catch (Exception ex)
             {
@@ -44,7 +62,6 @@ namespace ATM
                 Log.Information("ATM application shutting down...");
                 Log.CloseAndFlush();
             }
-
         }
     }
 }
