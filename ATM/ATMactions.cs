@@ -2,24 +2,26 @@
 using System;
 using System.Linq;
 
+
 namespace ATM
 {
-    public class ATMactions
+    public class ATMactions : IATMactions
     {
         private static readonly IDBQueries database = new DBQueries();
 
-        public static Customer CurrentUser { get; private set; }
+        public static Customer? CurrentUser { get; private set; }
 
-        public static void ShowBalance(Customer customer)
+
+        public void ShowBalance(Customer customer)
         {
             Log.Information("Customer with account {AccountNumber} initialized ShowBalance", customer.AccountNumber);
             Console.WriteLine($"\nYour current balance is: {customer.AccountBalance}");
         }
 
-        public static void Deposit(Customer customer)
+        public void Deposit(Customer customer)
         {
             Console.WriteLine("This is the section for depositing money. ");
-            decimal amount = EnterAmount();
+            decimal amount = ScreenDisplay.EnterAmount();
 
             Log.Information(
                 "Deposit requested for account {AccountNumber}, amount {Amount}",
@@ -56,10 +58,10 @@ namespace ATM
             }
         }
 
-        public static void Withdraw(Customer customer)
+        public void Withdraw(Customer customer)
         {
             Console.WriteLine("This is the section for withdrawing money. ");
-            decimal amount = EnterAmount();
+            decimal amount = ScreenDisplay.EnterAmount();
 
             Log.Information(
                 "Withdrawal requested for account {AccountNumber}, amount {Amount}",
@@ -97,7 +99,7 @@ namespace ATM
             }
         }
 
-        public static void Transfer(Customer sender)
+        public void Transfer(Customer sender)
         {
             Console.WriteLine("This is the section for transferring money. ");
             int recvAcc;
@@ -126,7 +128,7 @@ namespace ATM
                 return;
             }
 
-            decimal amount = EnterAmount();
+            decimal amount = ScreenDisplay.EnterAmount();
 
             Log.Information(
                 "Transfer requested from {SenderAccountNumber} to {ReceiverAccountNumber}, amount {Amount}",
@@ -165,7 +167,7 @@ namespace ATM
             }
         }
 
-        public static void ShowTransactionsHistory()
+        public void ShowTransactionsHistory()
         {
             Console.WriteLine("\t\tTransactions made are:\n");
 
@@ -307,74 +309,6 @@ namespace ATM
                     return newCustomer;
                 }
             }
-        }
-
-        public static void Menu(Customer customer)
-        {
-            bool looping = true;
-
-            while (looping)
-            {
-                ScreenDisplay.DisplayMenu(customer);
-                int option = 0;
-
-                do
-                {
-                    Console.Write("\nChoose an option: ");
-                    var input = Console.ReadLine();
-                    if (!int.TryParse(input, out option) || option < 1 || option > 6)
-                    {
-                        Console.WriteLine("Invalid input");
-                        option = 0;
-                    }
-                } while (option == 0);
-
-                Log.Information(
-                    "The user with account {AccountNumber} selected option {Option}",
-                    customer.AccountNumber,
-                    option);
-
-                switch (option)
-                {
-                    case 1:
-                        ShowBalance(customer);
-                        break;
-                    case 2:
-                        Deposit(customer);
-                        break;
-                    case 3:
-                        Withdraw(customer);
-                        break;
-                    case 4:
-                        Transfer(customer);
-                        break;
-                    case 5:
-                        ShowTransactionsHistory();
-                        break;
-                    default:
-                        Log.Information("User exited menu for account {AccountNumber}", customer.AccountNumber);
-                        looping = false;
-                        break;
-                }
-            }
-        }
-
-        private static decimal EnterAmount()
-        {
-            decimal num;
-            do
-            {
-                Console.Write("Enter the amount: ");
-                var input = Console.ReadLine();
-
-                if (!decimal.TryParse(input, out num) || num <= 0)
-                {
-                    Console.WriteLine("Error: Enter a positive numeric amount!");
-                    num = 0;
-                }
-            } while (num == 0);
-
-            return num;
         }
     }
 }

@@ -27,7 +27,7 @@ namespace ATM
             int accountNumber;
             do
             {
-                accountNumber = Random.Shared.Next(123459, 1000000);
+                accountNumber = Random.Shared.Next(123459, 1000000); //This creates a random 6-digit account number between 123459 and 999999
             } while (database.FindAccount(accountNumber) is not null);
 
             return accountNumber;

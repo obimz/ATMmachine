@@ -1,10 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using Serilog;
 
 namespace ATM
 {
     public static class ScreenDisplay
     {
+        public static readonly IATMactions action = new ATMactions();
+
         public static void WelcomeMessage()
         {
             Console.WriteLine("______________________________________________");
@@ -47,10 +50,79 @@ namespace ATM
             Console.WriteLine("__________________________________________________________________________________");
         }
 
+        public static decimal EnterAmount()
+        {
+            decimal num;
+            do
+            {
+                Console.Write("Enter the amount: ");
+                var input = Console.ReadLine();
+
+                if (!decimal.TryParse(input, out num) || num <= 0)
+                {
+                    Console.WriteLine("Error: Enter a positive numeric amount!");
+                    num = 0;
+                }
+            } while (num == 0);
+
+            return num;
+        }
+
         public static void OnboardingMessage()
         {
             Console.WriteLine("\n\n\nWelcome to your ATM App where you can manage your account.");
             Console.WriteLine("\n\nPlease follow the instructions to proceed.");
+        }
+
+        public static void Menu(Customer customer)
+        {
+            bool looping = true;
+
+            while (looping)
+            {
+                DisplayMenu(customer);
+                int option = 0;
+
+
+                do
+                {
+                    Console.Write("\nChoose an option: ");
+                    var input = Console.ReadLine();
+                    if (!int.TryParse(input, out option) || option < 1 || option > 6)
+                    {
+                        Console.WriteLine("Invalid input");
+                        option = 0;
+                    }
+                } while (option == 0);
+
+                Log.Information(
+                    "The user with account {AccountNumber} selected option {Option}",
+                    customer.AccountNumber,
+                    option);
+
+                switch (option)
+                {
+                    case 1:
+                        action.ShowBalance(customer);
+                        break;
+                    case 2:
+                        action.Deposit(customer);
+                        break;
+                    case 3:
+                        action.Withdraw(customer);
+                        break;
+                    case 4:
+                        action.Transfer(customer);
+                        break;
+                    case 5:
+                        action.ShowTransactionsHistory();
+                        break;
+                    default:
+                        Log.Information("User exited menu for account {AccountNumber}", customer.AccountNumber);
+                        looping = false;
+                        break;
+                }
+            }
         }
     }
 }
