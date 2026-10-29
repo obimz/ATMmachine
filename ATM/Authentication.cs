@@ -4,36 +4,43 @@ namespace ATM
 {
     public class Authentication
     {
-        private static readonly IDBQueries database = new DBQueries(); //create a database-query object with IDBQueries as the field type
+        private readonly IAccountReadRepository _databaseRead;
 
-        public static Customer ExistingUser(int accountNumber, string pin)
+        public Authentication(IAccountReadRepository databaseRead)
         {
-            AccountData? account = database.FindAccount(accountNumber);
+            _databaseRead = databaseRead;
+        }
+
+        public Customer? ExistingUser(int accountNumber, string pin)
+        {
+            AccountData? account = _databaseRead.FindAccount(accountNumber);
             if (account is null || !account.IsActive)
             {
                 Log.Warning("Login failed: account {Account Number} not found or is inactive", accountNumber);
                 return null;
             }
 
-            return PinHasher.VerifyPin(pin, account.PinHash)
-                ? ToCustomer(account)
-                : null;
-
-            Log.Information("Login successful {AccountNumber}", accountNumber);
+            bool isValid = PinHasher.VerifyPin(pin, account.PinHash);
+            if (isValid)
+            {
+                Log.Information("Login successful {AccountNumber}", accountNumber);
+                return ToCustomer(account);
+            }
+            return null;
         }
 
-        private static int Generate6DigitAccountNumber()
+        private int Generate6DigitAccountNumber()
         {
             int accountNumber;
             do
             {
                 accountNumber = Random.Shared.Next(123459, 1000000); //This creates a random 6-digit account number between 123459 and 999999
-            } while (database.FindAccount(accountNumber) is not null);
+            } while (_databaseRead.FindAccount(accountNumber) is not null);
 
             return accountNumber;
         }
 
-        public static Customer NewUser(
+        public Customer NewUser(
             string firstName,
             string lastName,
             string pin,
@@ -43,7 +50,7 @@ namespace ATM
 
             int accountNumber = Generate6DigitAccountNumber();
             byte[] pinHash = PinHasher.HashPin(pin);
-            AccountData account = database.CreateAccount(
+            AccountData account = _databaseRead.CreateAccount(
                 firstName,
                 lastName,
                 accountNumber,
@@ -54,9 +61,9 @@ namespace ATM
             return ToCustomer(account);
         }
 
-        public static Customer FindByAccountNumber(int accountNumber)
+        public Customer? FindByAccountNumber(int accountNumber)
         {
-            AccountData? account = database.FindAccount(accountNumber);
+            AccountData? account = _databaseRead.FindAccount(accountNumber);
             return account is null ? null : ToCustomer(account);
         }
 

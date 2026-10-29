@@ -1,16 +1,15 @@
-﻿using System;
-
-namespace ATM;
-
-public interface IATMactions
+﻿namespace ATM
 {
-    void ShowBalance(Customer customer);
+    public interface IATMactions
+    {
+        void ShowBalance(Customer customer);
 
-    void Deposit(Customer customer);
+        void Deposit(Customer customer, decimal amount);
 
-    void Withdraw(Customer customer);
+        void Withdraw(Customer customer, decimal amount);
 
-    void Transfer(Customer sender);
+        void Transfer(Customer sender, int receiverAccountNumber, decimal amount);
 
-    void ShowTransactionsHistory();
+        void ShowTransactionsHistory();
+    }
 }

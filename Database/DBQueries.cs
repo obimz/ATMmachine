@@ -22,7 +22,7 @@ namespace ATM
 		DateTime TransactionDate,
 		string? Description);
 
-	public class DBQueries : IDBQueries
+	public class DBQueries : IAccountReadRepository, ITransactionsCommandsRepo
 	{
 		public AccountData? FindAccount(int accountNumber)
 		{
