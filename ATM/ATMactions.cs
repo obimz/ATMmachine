@@ -6,6 +6,8 @@ namespace ATM
 {
     public class ATMactions
     {
+        private static readonly IDBQueries database = new DBQueries();
+
         public static Customer CurrentUser { get; private set; }
 
         public static void ShowBalance(Customer customer)
@@ -26,7 +28,7 @@ namespace ATM
 
             try
             {
-                AccountData? account = DBQueries.FindAccount(customer.AccountNumber);
+                AccountData? account = database.FindAccount(customer.AccountNumber);
                 if (account is null)
                 {
                     Log.Warning("Deposit failed: account {AccountNumber} not found", customer.AccountNumber);
@@ -34,7 +36,7 @@ namespace ATM
                     return;
                 }
 
-                AccountData updatedAccount = DBQueries.ApplyDeposit(account.AccountId, amount);
+                AccountData updatedAccount = database.ApplyDeposit(account.AccountId, amount);
                 customer.AccountBalance = (double)updatedAccount.Balance;
 
                 Log.Information(
@@ -66,7 +68,7 @@ namespace ATM
 
             try
             {
-                AccountData? account = DBQueries.FindAccount(customer.AccountNumber);
+                AccountData? account = database.FindAccount(customer.AccountNumber);
                 if (account is null)
                 {
                     Log.Warning("Withdrawal failed: account {AccountNumber} not found", customer.AccountNumber);
@@ -74,7 +76,7 @@ namespace ATM
                     return;
                 }
 
-                AccountData updatedAccount = DBQueries.ApplyWithdrawal(account.AccountId, amount);
+                AccountData updatedAccount = database.ApplyWithdrawal(account.AccountId, amount);
                 customer.AccountBalance = (double)updatedAccount.Balance;
 
                 Log.Information(
@@ -110,8 +112,8 @@ namespace ATM
                 }
             } while (recvAcc == 0);
 
-            AccountData? senderAccount = DBQueries.FindAccount(sender.AccountNumber);
-            AccountData? receiverAccount = DBQueries.FindAccount(recvAcc);
+            AccountData? senderAccount = database.FindAccount(sender.AccountNumber);
+            AccountData? receiverAccount = database.FindAccount(recvAcc);
 
             if (senderAccount is null || receiverAccount is null)
             {
@@ -134,9 +136,9 @@ namespace ATM
 
             try
             {
-                DBQueries.Transfer(senderAccount.AccountId, receiverAccount.AccountId, amount);
+                database.Transfer(senderAccount.AccountId, receiverAccount.AccountId, amount);
 
-                AccountData? updatedSender = DBQueries.FindAccount(sender.AccountNumber);
+                AccountData? updatedSender = database.FindAccount(sender.AccountNumber);
                 if (updatedSender is not null)
                 {
                     sender.AccountBalance = (double)updatedSender.Balance;
@@ -177,7 +179,7 @@ namespace ATM
                 "ShowTransactionsHistory for account {AccountNumber}",
                 CurrentUser.AccountNumber);
 
-            AccountData? account = DBQueries.FindAccount(CurrentUser.AccountNumber);
+            AccountData? account = database.FindAccount(CurrentUser.AccountNumber);
             if (account is null)
             {
                 Log.Warning(
@@ -188,7 +190,7 @@ namespace ATM
                 return;
             }
 
-            var transactions = DBQueries.GetTransactions(account.AccountId);
+            var transactions = database.GetTransactions(account.AccountId);
             Log.Information(
                 "Transactions loaded for account {AccountNumber}, count {Count}",
                 CurrentUser.AccountNumber,
