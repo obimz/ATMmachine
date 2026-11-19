@@ -37,7 +37,7 @@ namespace ATM
                     return;
                 }
 
-                AccountData updatedAccount = _databaseTransact.ApplyDeposit(account.AccountId, amount);
+                AccountData updatedAccount = _databaseTransact.ApplyDeposit(account.AccountId, amount);//calls the applydeposit method from the repo
                 customer.AccountBalance = (double)updatedAccount.Balance;
 
                 Log.Information("Deposit successful for account {AccountNumber}, new balance {Balance}", customer.AccountNumber, customer.AccountBalance);

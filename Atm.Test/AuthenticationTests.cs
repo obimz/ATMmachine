@@ -1,6 +1,8 @@
 ﻿using ATM;
 using FakeItEasy;
 using FluentAssertions;
+using static Atm.Test.FakeAccountHelper;
+
 
 namespace Atm.Test;
 
@@ -9,35 +11,14 @@ public class AuthenticationTests
     private readonly IAccountReadRepository _fakeRepo;
     private readonly Authentication _auth; //sut
 
+
     public AuthenticationTests()
     {
         _fakeRepo = A.Fake<IAccountReadRepository>();
         _auth = new Authentication(_fakeRepo);
     }
 
-    private AccountData CreateFakeAccount(
-        int customerId = 1,
-        int accountId = 10,
-        string firstName = "John",
-        string lastName = "Doe",
-        int accountNumber = 123456,
-        byte[]? pinHash = null,
-        bool isActive = true,
-        decimal balance = 5000m)
-    {
-        return new AccountData
-        (
-            CustomerId: customerId,
-            AccountId: accountId,
-            FirstName: firstName,
-            LastName: lastName,
-            AccountNumber: accountNumber,
-            PinHash: pinHash ?? new byte[] { 1, 2, 3, 4 },
-            Balance: balance,
-            MinimumBalance: 1000m,
-            IsActive: isActive);
-
-    }
+    
     [Fact]
     public void FindByAccountNumber_WhenAccountDoesNotExist_ReturnsNull()
     {
@@ -55,7 +36,7 @@ public class AuthenticationTests
     {
         // Arrange
         int accountNumber = 123452;
-        var fakeAccount = CreateFakeAccount(accountNumber: accountNumber);
+        var fakeAccount = Create(accountNumber: accountNumber);
         A.CallTo(() => _fakeRepo.FindAccount(accountNumber)).Returns(fakeAccount);
 
         //Act
@@ -63,7 +44,7 @@ public class AuthenticationTests
 
         //Assert
         result.Should().NotBeNull();
-        result.ID.Should().Be(1);
+        result!.ID.Should().Be(1);
     }
 
     [Fact]
@@ -84,7 +65,7 @@ public class AuthenticationTests
     public void ExistingUser_WhenAccountInactive_ReturnsNull()
     {
         //Arrange
-        AccountData account = CreateFakeAccount(isActive: false);
+        AccountData account = Create(isActive: false);
         A.CallTo(() => _fakeRepo.FindAccount(account.AccountNumber)).Returns(account);
 
         //Act
@@ -98,7 +79,7 @@ public class AuthenticationTests
     public void ExistingUser_WhenPinIsValid_ReturnsCustomer()
     {
         //Arrange
-        AccountData account = CreateFakeAccount(pinHash: PinHasher.HashPin("1234"));
+        AccountData account = Create(pinHash: PinHasher.HashPin("1234"));
         A.CallTo(() => _fakeRepo.FindAccount(account.AccountNumber)).Returns(account);
 
         //Act
@@ -115,7 +96,7 @@ public class AuthenticationTests
     public void NewUser_WhenCreated_ReturnsCustomerMatchingAccount()
     {
         //Arrange
-        AccountData account = CreateFakeAccount();
+        AccountData account = Create();
         A.CallTo(() => _fakeRepo.FindAccount(A<int>._)).Returns(null);
         A.CallTo(() => _fakeRepo.CreateAccount(
             A<string>._,
@@ -148,7 +129,7 @@ public class AuthenticationTests
             A<int>._,
             A<byte[]>._,
             A<decimal>._)).Invokes(call => capturePinHash = call.GetArgument<byte[]>(3))
-            .Returns(CreateFakeAccount());
+            .Returns(Create());
 
         //Act
         _auth.NewUser("John", "Doe", "1234", 0m);
@@ -157,5 +138,32 @@ public class AuthenticationTests
         capturePinHash.Should().NotBeNull();
         capturePinHash.Length.Should().Be(48);
         PinHasher.VerifyPin("1234", capturePinHash).Should().BeTrue();
+    }
+
+    [Fact]
+    public void NewUser_WhenAccountNumberIsTaken_RetriesWithAnotherNumber()
+    {
+        //Arrange
+        A.CallTo(() => _fakeRepo.FindAccount(A<int>._)).ReturnsNextFromSequence(
+            Create(accountNumber: 123456),
+            null);
+        A.CallTo(() => _fakeRepo.CreateAccount(
+            A<string>._,
+            A<string>._,
+            A<int>._,
+            A<byte[]>._,
+            A<decimal>._)).Returns(Create());
+
+        //Act
+        _auth.NewUser("John", "Doe", "1234", 0m);
+
+        //Assert
+        A.CallTo(() => _fakeRepo.FindAccount(A<int>._)).MustHaveHappenedTwiceExactly();
+        A.CallTo(() => _fakeRepo.CreateAccount(
+            A<string>._,
+            A<string>._,
+            A<int>._,
+            A<byte[]>._,
+            A<decimal>._)).MustHaveHappenedOnceExactly();
     }
 }
